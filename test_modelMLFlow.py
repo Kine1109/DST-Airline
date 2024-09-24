@@ -3,7 +3,25 @@ import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+import mlflow.pyfunc
+from pymongo import MongoClient
 
+
+def connect_to_mongodb(mongo_uri, db_name, collection_name):
+    """
+    Se connecter à MongoDB Atlas et retourner la collection.
+
+    Paramètres :
+        mongo_uri (str) : L'URI MongoDB pour la connexion.
+        db_name (str) : Le nom de la base de données.
+        collection_name (str) : Le nom de la collection.
+
+    Retourne :
+        collection : L'objet collection de MongoDB.
+    """
+    client = MongoClient(mongo_uri)
+    db = client[db_name]
+    return db[collection_name]
 
 def load_model(run_id):
     """
@@ -15,16 +33,18 @@ def load_model(run_id):
 
 def load_preprocessors(run_id):
     """Charge les préprocesseurs à partir de MLflow."""
-    artifact_uri = f"runs:/{run_id}/preprocessors"
-    
+    #artifact_uri = f"runs:/{run_id}/preprocessors"
+    artifact_uri = f"mlruns/0/{run_id}/artifacts/preprocessors"
     # Téléchargement des préprocesseurs à partir des artefacts MLflow
     #encoder_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/encoder.pkl")
     #scaler_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/scaler.pkl")
     #encoder_path = mlflow.get_artifact_uri("encoder.pkl")
     #scaler_path = mlflow.get_artifact_uri("scaler.pkl")
     # Chargement des préprocesseurs
-    encoder = joblib.load("encoder.pkl")
-    scaler = joblib.load("scaler.pkl")
+    encoder_path = f"{artifact_uri}/encoder.pkl"
+    scaler_path = f"{artifact_uri}/scaler.pkl"
+    encoder = joblib.load(encoder_path)
+    scaler = joblib.load(scaler_path)
     
     return encoder, scaler
 
@@ -56,39 +76,51 @@ def preprocess_new_data(new_data, encoder, scaler):
 
 def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    run_id = "2e509b4e47e84345b7824174f4c8947f"
+    run_id = "4d5c1a0716f9460bbc15d80fb3f8612a"
     
     # Chargement du modèle
     model = load_model(run_id)
     
     # Chargement des préprocesseurs
     encoder, scaler = load_preprocessors(run_id)
-    
+
+
+    # Configuration
+    MONGO_URI = 'mongodb+srv://dst-airline-MRFF:gVlxqqz76838njKp@cluster0.vauxcgo.mongodb.net/test?retryWrites=true&w=majority' 
+    db_name = 'flight_data'
+    collection_name = 'flights_with_weather'
+
+    # Connexion à la base de données
+    collection = connect_to_mongodb(MONGO_URI, db_name, collection_name)
+    # Récupérer le premier document de la collection
+    first_document = collection.find_one()
+    print(first_document)
     # Exemple de nouvelles données
     new_data = pd.DataFrame({
-        'FlightNumber': ['AB123'],
+        'FlightNumber': ['012'],
         'DepartureAirport': ['JFK'],
-        'ArrivalAirport': ['LAX'],
+        'ArrivalAirport': ['IST'],
         'DepartureCondition': ['Clear'],
         'ArrivalCondition': ['Sunny'],
-        'DepartureTempC': [15.0],
-        'DepartureHumidity': [70],
+        'DepartureTempC': [21.6],
+        'DepartureHumidity': [54],
         'DeparturePrecipMM': [0.0],
-        'DepartureWindKPH': [10],
+        'DepartureWindKPH': [15.5],
         'DepartureVisKM': [10.0],
-        'DepartureGustKPH': [20.0],
-        'ArrivalTempC': [25.0],
-        'ArrivalHumidity': [50],
+        'DepartureGustKPH': [21.8],
+        'ArrivalTempC': [28.3],
+        'ArrivalHumidity': [59],
         'ArrivalPrecipMM': [0.0],
-        'ArrivalWindKPH': [15.0],
+        'ArrivalWindKPH': [25.2],
         'ArrivalVisKM': [10.0],
-        'ArrivalGustKPH': [30.0],
-        'DepartureHour': [14],
-        'ArrivalHour': [16],
-        'DepartureDayOfWeek': [1],  
-        'ArrivalDayOfWeek': [1],    
-        'DepartureMonth': [9],      
-        'ArrivalMonth': [9]         
+        'ArrivalGustKPH': [33.3],
+        'DepartureHour': [0],
+        'ArrivalHour': [17],
+        'DepartureDayOfWeek': [5],  
+        'ArrivalDayOfWeek': [5],    
+        'DepartureMonth': [8],      
+        'ArrivalMonth': [8],
+         'De': [8]         
     })
 
     # Prétraitement des nouvelles données

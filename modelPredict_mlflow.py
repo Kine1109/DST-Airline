@@ -44,7 +44,6 @@ def extract_flight_data(collection):
             'ArrivalAirport': flight.get('ArrivalAirport'),
             'DepartureTimeLocal': flight.get('DepartureTimeLocal'),
             'ArrivalTimeLocal': flight.get('ArrivalTimeLocal'),
-            'DepartureDelayDuration': flight.get('DepartureDelayDuration'),
             'ArrivalDelayDuration': flight.get('ArrivalDelayDuration'),
             'DepartureTempC': flight.get('DepartureWeather', {}).get('temp_c', None),
             'DepartureHumidity': flight.get('DepartureWeather', {}).get('humidity', None),
