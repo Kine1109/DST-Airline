@@ -246,11 +246,12 @@ def process_data(data):
         for flight in data:
             departure_airport = flight['DepartureAirport']
             arrival_airport = flight['ArrivalAirport']
-            date = flight['DepartureTimeUTC'][:10]  # Utiliser la date de départ pour les prévisions météorologiques
+            dateDeparture = flight['DepartureTimeLocal'][:10]  # Utiliser la date de départ pour les prévisions météorologiques de départ
+            dateArrival = flight['DepartureTimeLocal'][:10] # Utiliser la date d'arrivée pour les prévisions météorologiques d'arrivée
             
             # Récupérer les données météo pour les aéroports de départ et d'arrivée
-            departure_weather_df = get_weather_data(API_KEY, departure_airport, date)
-            arrival_weather_df = get_weather_data(API_KEY, arrival_airport, date)
+            departure_weather_df = get_weather_data(API_KEY, departure_airport, dateDeparture)
+            arrival_weather_df = get_weather_data(API_KEY, arrival_airport, dateArrival)
             
             # Trouver les données météo les plus proches
             departure_weather = find_closest_weather_time(departure_weather_df, flight['DepartureTimeLocal'])
@@ -264,8 +265,8 @@ def process_data(data):
         print("Données sauvegardées dans MongoDB.")
 
 if __name__ == '__main__':
-    start_date_str = '2024-09-12T00:00'
-    end_date_str = '2024-09-19T00:00'
+    start_date_str = '2024-09-20T00:00'
+    end_date_str = '2024-09-23T00:00'
 
     start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')

@@ -17,7 +17,8 @@ flights_df['DepartureDayOfWeek'] = pd.to_datetime(data['ActualDeparture']).dt.da
 flights_df['ArrivalDayOfWeek'] = pd.to_datetime(data['ActualArrival']).dt.dayofweek
 flights_df['DepartureMonth'] = pd.to_datetime(data['ActualDeparture']).dt.month
 flights_df['ArrivalMonth'] = pd.to_datetime(data['ActualArrival']).dt.month
-print(flights_df)
+#print(flights_df[flights_df['DelayReason'] == 'Weather'])
+print(flights_df['DelayReason'])
 # Encodage des variables catégorielles (FlightNumber, Airports, etc.)
 #categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
 categorical_features = ['FlightNumber', 'Origin', 'Destination', 'DelayReason']
