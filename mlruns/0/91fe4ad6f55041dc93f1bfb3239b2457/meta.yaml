@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/fatou/Desktop/datascientest/DST-Airline/mlruns/0/91fe4ad6f55041dc93f1bfb3239b2457/artifacts
+end_time: 1727255916454
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+name: ''
+run_id: 91fe4ad6f55041dc93f1bfb3239b2457
+run_uuid: 91fe4ad6f55041dc93f1bfb3239b2457
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1727255916378
+status: 3
+tags: []
+user_id: fatou
