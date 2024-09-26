@@ -8,6 +8,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import mlflow
 import mlflow.sklearn
 import joblib
+import os
+
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
     """
@@ -90,7 +92,7 @@ def prepare_data(flights_df):
 
     # Encodage des variables catégorielles
     categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
-    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     encoded_categorical = encoder.fit_transform(flights_df[categorical_features])
 
     # Normalisation des caractéristiques continues
@@ -105,7 +107,7 @@ def prepare_data(flights_df):
     flights_df[continuous_features] = scaler.fit_transform(flights_df[continuous_features])
 
     # Création du DataFrame final
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
     flights_df = pd.concat([flights_df.drop(columns=categorical_features), encoded_df], axis=1)
 
     # Sélection des caractéristiques (features) et de la cible (target)
@@ -171,21 +173,30 @@ def log_experiment(metrics, model,encoder,scaler):
         encoder (OneHotEncoder) : Encodeur utilisé pour transformer les variables catégorielles.
         scaler (MinMaxScaler) : Scaler utilisé pour normaliser les variables continues.
     """
-    mlflow.start_run()
 
-    # Sauvegarder les préprocesseurs dans le dossier 'artifacts'
-    joblib.dump(encoder, 'encoder.pkl')
-    joblib.dump(scaler, 'scaler.pkl')
-    
-    # Loguer les préprocesseurs comme artefacts dans MLflow
-    mlflow.log_artifact('encoder.pkl', 'preprocessors')
-    mlflow.log_artifact('scaler.pkl', 'preprocessors')
+    # 1. Définir le répertoire de base
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # Répertoire courant du script
+    mlflow.set_tracking_uri("file://" + os.path.join(base_dir, "mlruns")) 
+
+    mlflow.start_run()
+    # Enregistrement du modèle
+    mlflow.sklearn.log_model(model, "model")
+
+    # Enregistrement de encoder et scaler
+    encoder_path = os.path.join("preprocessors", "encoder.pkl") 
+    joblib.dump(encoder, os.path.join(base_dir, encoder_path))
+   
+    scaler_path = os.path.join("preprocessors", "scaler.pkl")  
+    joblib.dump(scaler, os.path.join(base_dir, scaler_path))
+
+    mlflow.log_artifact(os.path.join(base_dir, encoder_path), artifact_path="preprocessors")
+    mlflow.log_artifact(os.path.join(base_dir, scaler_path), artifact_path="preprocessors")
+
     # Sauvegarder le modèle et les métriques
     mlflow.log_param("model_type", "LinearRegression")
     mlflow.log_metric("mean_squared_error", metrics['mean_squared_error'])
     mlflow.log_metric("mean_absolute_error", metrics['mean_absolute_error'])
     mlflow.log_metric("r2_score", metrics['r2_score'])
-    mlflow.sklearn.log_model(model, "model")
     mlflow.end_run()
 
 def main():

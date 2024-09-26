@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/fatou/Desktop/datascientest/DST-Airline/mlruns/0/7425e3b1094d49d9a8f36f3b63bb4f80/artifacts
+end_time: 1727346264242
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 7425e3b1094d49d9a8f36f3b63bb4f80
+run_name: bittersweet-bass-94
+run_uuid: 7425e3b1094d49d9a8f36f3b63bb4f80
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1727346260121
+status: 3
+tags: []
+user_id: fatou

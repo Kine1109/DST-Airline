@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 import mlflow.pyfunc
 from pymongo import MongoClient
-
+import os
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
     """
@@ -27,26 +27,51 @@ def load_model(run_id):
     """
     Chargement du modèle MLflow à partir d'un run ID spécifique.
     """
-    model_uri = f"runs:/{run_id}/model" #./mlruns/0{run_id}/model
+    # Construire l'URI du modèle à partir de l'ID d'exécution
+    model_uri = f"runs:/{run_id}/model"
+    
+    # Créer un chemin d'accès local pour stocker le modèle téléchargé
+    local_model_path = os.path.join("local_artifacts", "model")
+
+    # Assurez-vous que le dossier existe
+    os.makedirs(local_model_path, exist_ok=True)
+
+    # Télécharger le modèle à partir de MLflow
+    #mlflow.sklearn.save_model(model_uri=model_uri, path=local_model_path)
+
+    # Charger le modèle depuis le chemin local
     model = mlflow.sklearn.load_model(model_uri)
+    
     return model
 
+
 def load_preprocessors(run_id):
-    """Charge les préprocesseurs à partir de MLflow."""
-    #artifact_uri = f"runs:/{run_id}/preprocessors"
-    artifact_uri = f"mlruns/0/{run_id}/artifacts/preprocessors"
-    # Téléchargement des préprocesseurs à partir des artefacts MLflow
-    #encoder_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/encoder.pkl")
-    #scaler_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/scaler.pkl")
-    #encoder_path = mlflow.get_artifact_uri("encoder.pkl")
-    #scaler_path = mlflow.get_artifact_uri("scaler.pkl")
+    """Charge les préprocesseurs à partir de MLflow en utilisant des chemins relatifs."""
+    
+    # Construire l'URI d'artefact pour accéder aux préprocesseurs
+    artifact_uri = f"runs:/{run_id}/preprocessors"
+    
+    # Créer un chemin d'accès local pour stocker les artefacts téléchargés
+    local_encoder_path = os.path.join("local_artifacts", "encoder.pkl")
+    local_scaler_path = os.path.join("local_artifacts", "scaler.pkl")
+
+    # Assurez-vous que le dossier existe
+    os.makedirs("local_artifacts", exist_ok=True)
+
+    # Télécharger les préprocesseurs à partir des artefacts MLflow
+    encoder_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/encoder.pkl")
+    scaler_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/scaler.pkl")
+
+    # Copier les artefacts téléchargés dans le répertoire local
+    os.rename(encoder_path, local_encoder_path)
+    os.rename(scaler_path, local_scaler_path)
+
     # Chargement des préprocesseurs
-    encoder_path = f"{artifact_uri}/encoder.pkl"
-    scaler_path = f"{artifact_uri}/scaler.pkl"
-    encoder = joblib.load(encoder_path)
-    scaler = joblib.load(scaler_path)
+    encoder = joblib.load(local_encoder_path)
+    scaler = joblib.load(local_scaler_path)
     
     return encoder, scaler
+
 
 def preprocess_new_data(new_data, encoder, scaler):
     """
@@ -63,7 +88,7 @@ def preprocess_new_data(new_data, encoder, scaler):
     
     # Encodage des variables catégorielles
     encoded_categorical = encoder.transform(new_data[categorical_features])
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
 
     # Normalisation les caractéristiques continues
     scaled_continuous = scaler.transform(new_data[continuous_features])
@@ -76,7 +101,7 @@ def preprocess_new_data(new_data, encoder, scaler):
 
 def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    run_id = "4d5c1a0716f9460bbc15d80fb3f8612a"
+    run_id = "b9fe6fca494a440fb075b96e88eb446b"
     
     # Chargement du modèle
     model = load_model(run_id)
