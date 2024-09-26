@@ -86,7 +86,7 @@ def main():
     collection = connect_to_mongodb(MONGO_URI, db_name, collection_name)
     # Récupérer le premier document de la collection
     first_document = collection.find_one()
-    
+    print(first_document)
     # Exemple de nouvelles données
     new_data = pd.DataFrame({
         'FlightNumber': ['012'],
@@ -118,6 +118,9 @@ def main():
     # Prétraitement des nouvelles données
     preprocessed_data = preprocess_new_data(new_data, encoder, scaler)
     
+    # Vérification des colonnes
+    print("Colonnes des données prétraitées:", preprocessed_data.columns.tolist())
+
     # Prédiction avec le modèle
     predictions = model.predict(preprocessed_data)
     predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives

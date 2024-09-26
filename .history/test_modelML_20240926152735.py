@@ -55,7 +55,7 @@ def preprocess_new_data(new_data, encoder, scaler):
     
     # Encodage des variables catégorielles
     encoded_categorical = encoder.transform(new_data[categorical_features])
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names(categorical_features))
 
     # Normalisation les caractéristiques continues
     scaled_continuous = scaler.transform(new_data[continuous_features])
@@ -68,7 +68,7 @@ def preprocess_new_data(new_data, encoder, scaler):
 
 def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    run_id = "1"
+    run_id = "0"
     
     # Chargement du modèle
     model = load_model(run_id)
@@ -86,7 +86,7 @@ def main():
     collection = connect_to_mongodb(MONGO_URI, db_name, collection_name)
     # Récupérer le premier document de la collection
     first_document = collection.find_one()
-    
+    print(first_document)
     # Exemple de nouvelles données
     new_data = pd.DataFrame({
         'FlightNumber': ['012'],
@@ -118,6 +118,9 @@ def main():
     # Prétraitement des nouvelles données
     preprocessed_data = preprocess_new_data(new_data, encoder, scaler)
     
+    # Vérification des colonnes
+    print("Colonnes des données prétraitées:", preprocessed_data.columns.tolist())
+
     # Prédiction avec le modèle
     predictions = model.predict(preprocessed_data)
     predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives

@@ -118,6 +118,9 @@ def main():
     # Prétraitement des nouvelles données
     preprocessed_data = preprocess_new_data(new_data, encoder, scaler)
     
+    # Vérification des colonnes
+    print("Colonnes des données prétraitées:", preprocessed_data.columns.tolist())
+
     # Prédiction avec le modèle
     predictions = model.predict(preprocessed_data)
     predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives

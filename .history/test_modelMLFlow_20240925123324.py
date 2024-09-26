@@ -1,8 +1,14 @@
+import mlflow
 import joblib
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+import mlflow.pyfunc
 from pymongo import MongoClient
+
+
+REMOTE_MLFLOW_PATH = r"\C:\Users\RS\Documents\1-DataEngineering\8-Pjojet_DE\DST-Airline\mlruns"
+mlflow.set_tracking_uri(REMOTE_MLFLOW_PATH)
 
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
@@ -25,16 +31,22 @@ def load_model(run_id):
     """
     Chargement du modèle MLflow à partir d'un run ID spécifique.
     """
-    model_uri = f"models/{run_id}/model.pkl" #./mlruns/0{run_id}/model
-    #model = mlflow.sklearn.load_model(model_uri)
-    model = joblib.load(model_uri)
+    model_uri = f"runs:/{run_id}/model"
+    model = mlflow.sklearn.load_model(model_uri)
     return model
 
 def load_preprocessors(run_id):
     """Charge les préprocesseurs à partir de MLflow."""
-    
-    encoder_path = f"models/{run_id}/encoder.pkl"
-    scaler_path = f"models/{run_id}/scaler.pkl"
+    #artifact_uri = f"runs:/{run_id}/preprocessors"
+    artifact_uri = f"mlruns/0/{run_id}/artifacts/preprocessors"
+    # Téléchargement des préprocesseurs à partir des artefacts MLflow
+    #encoder_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/encoder.pkl")
+    #scaler_path = mlflow.artifacts.download_artifacts(f"{artifact_uri}/scaler.pkl")
+    #encoder_path = mlflow.get_artifact_uri("encoder.pkl")
+    #scaler_path = mlflow.get_artifact_uri("scaler.pkl")
+    # Chargement des préprocesseurs
+    encoder_path = f"{artifact_uri}/encoder.pkl"
+    scaler_path = f"{artifact_uri}/scaler.pkl"
     encoder = joblib.load(encoder_path)
     scaler = joblib.load(scaler_path)
     
@@ -55,7 +67,7 @@ def preprocess_new_data(new_data, encoder, scaler):
     
     # Encodage des variables catégorielles
     encoded_categorical = encoder.transform(new_data[categorical_features])
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_(categorical_features))
 
     # Normalisation les caractéristiques continues
     scaled_continuous = scaler.transform(new_data[continuous_features])
@@ -68,7 +80,7 @@ def preprocess_new_data(new_data, encoder, scaler):
 
 def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    run_id = "1"
+    run_id = "4d5c1a0716f9460bbc15d80fb3f8612a"
     
     # Chargement du modèle
     model = load_model(run_id)
@@ -86,7 +98,7 @@ def main():
     collection = connect_to_mongodb(MONGO_URI, db_name, collection_name)
     # Récupérer le premier document de la collection
     first_document = collection.find_one()
-    
+    print(first_document)
     # Exemple de nouvelles données
     new_data = pd.DataFrame({
         'FlightNumber': ['012'],
@@ -118,6 +130,9 @@ def main():
     # Prétraitement des nouvelles données
     preprocessed_data = preprocess_new_data(new_data, encoder, scaler)
     
+    # Vérification des colonnes
+    print("Colonnes des données prétraitées:", preprocessed_data.columns.tolist())
+
     # Prédiction avec le modèle
     predictions = model.predict(preprocessed_data)
     predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives

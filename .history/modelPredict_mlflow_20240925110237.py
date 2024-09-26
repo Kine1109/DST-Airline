@@ -5,8 +5,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import mlflow
+import mlflow.sklearn
 import joblib
-import os
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
     """
@@ -89,7 +90,7 @@ def prepare_data(flights_df):
 
     # Encodage des variables catégorielles
     categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
-    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
     encoded_categorical = encoder.fit_transform(flights_df[categorical_features])
 
     # Normalisation des caractéristiques continues
@@ -104,14 +105,14 @@ def prepare_data(flights_df):
     flights_df[continuous_features] = scaler.fit_transform(flights_df[continuous_features])
 
     # Création du DataFrame final
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names(categorical_features))
     flights_df = pd.concat([flights_df.drop(columns=categorical_features), encoded_df], axis=1)
 
     # Sélection des caractéristiques (features) et de la cible (target)
     X = flights_df.drop(columns=['ArrivalDelayDuration'])
     y = flights_df['ArrivalDelayDuration']
     
-    return X, y, encoder, scaler
+    return X, y,encoder,scaler
 
 def train_model(X_train, y_train):
     """
@@ -160,38 +161,32 @@ def evaluate_model(model, X_test, y_test):
         'y_pred': y_pred
     }
 
-def save_model_and_processors(model, encoder, scaler):
+def log_experiment(metrics, model,encoder,scaler):
     """
-    Enregistre le modèle et les préprocesseurs dans des fichiers.
-
-    Paramètres :
-        model : Le modèle à enregistrer.
-        encoder : L'encodeur à enregistrer.
-        scaler : Le scaler à enregistrer.
-    """
-    i=0
-    path_name = f"models/{i}"
-    while os.path.exists(path_name):
-        i += 1
-        path_name = f"models/{i}"
-
-    # Crée le dossier
-    os.makedirs(path_name)
-    joblib.dump(model, f'{path_name}/model.pkl')
-    joblib.dump(encoder, f'{path_name}/encoder.pkl')
-    joblib.dump(scaler, f'{path_name}/scaler.pkl')
-    print("Modèle et préprocesseurs enregistrés.")
-
-def save_metrics(metrics):
-    """
-    Enregistre les métriques d'évaluation dans un fichier CSV.
+    Enregistre les détails de l'expérience et le modèle à l'aide de MLflow.
 
     Paramètres :
         metrics (dict) : Les métriques à enregistrer.
+        model : Le modèle entraîné à enregistrer.
+        encoder (OneHotEncoder) : Encodeur utilisé pour transformer les variables catégorielles.
+        scaler (MinMaxScaler) : Scaler utilisé pour normaliser les variables continues.
     """
-    metrics_df = pd.DataFrame([metrics])
-    metrics_df.to_csv('models/metrics.csv', index=False)
-    print("Métriques enregistrées.")
+    mlflow.start_run()
+
+    # Sauvegarder les préprocesseurs dans le dossier 'artifacts'
+    joblib.dump(encoder, 'encoder.pkl')
+    joblib.dump(scaler, 'scaler.pkl')
+    
+    # Loguer les préprocesseurs comme artefacts dans MLflow
+    mlflow.log_artifact('encoder.pkl', 'preprocessors')
+    mlflow.log_artifact('scaler.pkl', 'preprocessors')
+    # Sauvegarder le modèle et les métriques
+    mlflow.log_param("model_type", "LinearRegression")
+    mlflow.log_metric("mean_squared_error", metrics['mean_squared_error'])
+    mlflow.log_metric("mean_absolute_error", metrics['mean_absolute_error'])
+    mlflow.log_metric("r2_score", metrics['r2_score'])
+    mlflow.sklearn.log_model(model, "model")
+    mlflow.end_run()
 
 def main():
     # Configuration
@@ -206,7 +201,7 @@ def main():
     flights_df = extract_flight_data(collection)
 
     # Préparation des données
-    X, y, encoder, scaler = prepare_data(flights_df)
+    X, y,encoder,scaler = prepare_data(flights_df)
 
     # Diviser en ensembles d'entraînement et de test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -217,11 +212,8 @@ def main():
     # Évaluation du modèle
     metrics = evaluate_model(model, X_test, y_test)
 
-    # Enregistrement du modèle et des préprocesseurs
-    save_model_and_processors(model, encoder, scaler)
-
-    # Enregistrement des métriques
-    save_metrics(metrics)
+    # Journalisation des résultats dans MLflow
+    log_experiment(metrics, model,encoder,scaler)
 
     # Afficher les résultats
     for i in range(5):

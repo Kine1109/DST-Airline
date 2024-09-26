@@ -89,7 +89,7 @@ def prepare_data(flights_df):
 
     # Encodage des variables catégorielles
     categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
-    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
     encoded_categorical = encoder.fit_transform(flights_df[categorical_features])
 
     # Normalisation des caractéristiques continues
@@ -104,7 +104,7 @@ def prepare_data(flights_df):
     flights_df[continuous_features] = scaler.fit_transform(flights_df[continuous_features])
 
     # Création du DataFrame final
-    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names_out(categorical_features))
+    encoded_df = pd.DataFrame(encoded_categorical, columns=encoder.get_feature_names(categorical_features))
     flights_df = pd.concat([flights_df.drop(columns=categorical_features), encoded_df], axis=1)
 
     # Sélection des caractéristiques (features) et de la cible (target)
