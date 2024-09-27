@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 
 
+
+
 # Configurer le module logging
 logging.basicConfig(
     filename='app.log',  # Nom du fichier de log
@@ -21,35 +23,51 @@ MONGO_URI = 'mongodb+srv://dst-airline-MRFF:gVlxqqz76838njKp@cluster0.vauxcgo.mo
 DB_NAME = 'flight_data'
 COLLECTION_NAME = 'flights_with_weather'
 
+CLIENT_MONGO = MongoClient(MONGO_URI)
+DB = CLIENT_MONGO[DB_NAME]
+COLLECTION = DB[COLLECTION_NAME]
+
 CLIENT_ID = 'e8hcgs9ady5xbaxd2b73n4zmq'
 CLIENT_SECRET = 'kqUNaMx7yA'
 
-api_key = 'e8hcgs9ady5xbaxd2b73n4zmq'
-url_token = "https://api.lufthansa.com/v1/oauth/token"
 
-headers_token = {
+URL_TOKEN = "https://api.lufthansa.com/v1/oauth/token"
+
+HEARDERS_TOKEN = {
     "Content-Type": "application/x-www-form-urlencoded",
 }
-data_token = {
+DATA_TOKEN = {
     "client_id": CLIENT_ID,
     "client_secret": CLIENT_SECRET,
     "grant_type": "client_credentials"
 }
 
-response_token = requests.post(url_token, headers=headers_token, data=data_token)
 
-# Effectuer la requête POST pour obtenir un token d'accès
-response_token = requests.post(url_token, headers=headers_token, data=data_token)
+def get_access_token(url_token, headers_token, data_token):
+    """
+    Effectue une requête POST pour obtenir un token d'accès.
 
-# Vérifier le statut de la réponse
-if response_token.status_code == 200:
-    print("Connexion réussie !")
-    access_token = response_token.json()["access_token"]
-    print("Token d'accès :", access_token)
-else:
-    print("Erreur de connexion :", response_token.status_code)
-    print(response_token.json())
-    exit()
+    Parameters:
+    - url_token (str): L'URL à laquelle la requête POST doit être envoyée pour obtenir le token.
+    - headers_token (dict): Les en-têtes à inclure dans la requête, typiquement pour l'authentification.
+    - data_token (dict): Les données à envoyer dans la requête pour obtenir le token.
+
+    Returns:
+    - str: Le token d'accès si la requête est réussie.
+    - None: Si la requête échoue.
+    """
+    response_token = requests.post(url_token, headers=headers_token, data=data_token)
+
+    # Vérifier le statut de la réponse
+    if response_token.status_code == 200:
+        print("Connexion réussie !")
+        access_token = response_token.json().get("access_token")
+        print("Token d'accès :", access_token)
+        return access_token
+    else:
+        print("Erreur de connexion :", response_token.status_code)
+        print(response_token.json())
+        return None
 
 
 # Listes des aéroports 
@@ -77,7 +95,7 @@ airports = ['JFK', 'LAX', 'ORD', 'ATL', 'DFW', 'MIA', 'SFO', 'SEA', 'BOS', 'PHL'
             'BKK','FCO','GVA','LIS','MAN','']
 # Fonction pour extraire les données depuis l'API Lufthansa
 
-def fetch_flight_data(airport, date):
+def fetch_flight_data(access_token,airport, date):
     """
     Récupère les données de vol pour un aéroport donné et une date spécifique depuis l'API Lufthansa.
 
@@ -176,11 +194,9 @@ def insert_data(data):
     Args:
         data (list): Liste de dictionnaires contenant les informations des vols.
     """
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    collection = db[COLLECTION_NAME]
-    collection.create_index([('DepartureTimeUTC', 1)], expireAfterSeconds=3600)
-    collection.insert_many(data)
+
+    COLLECTION.create_index([('DepartureTimeUTC', 1)], expireAfterSeconds=3600)
+    COLLECTION.insert_many(data)
     print("Insertion réussie")
 
 # Pour les données météos
@@ -239,10 +255,6 @@ def process_data(data):
         data (list): Liste de dictionnaires contenant les informations des vols.
     """
     if data:
-        client = MongoClient(MONGO_URI)
-        db = client[DB_NAME]
-        collection = db[COLLECTION_NAME]
-        
         for flight in data:
             departure_airport = flight['DepartureAirport']
             arrival_airport = flight['ArrivalAirport']
@@ -265,26 +277,28 @@ def process_data(data):
         print("Données sauvegardées dans MongoDB.")
 
 if __name__ == '__main__':
-    start_date_str = '2024-09-20T00:00'
-    end_date_str = '2024-09-23T00:00'
+    start_date_str = '2024-09-24T00:00'
+    end_date_str = '2024-09-26T00:00'
 
     start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
     interval = timedelta(days=1)  
     current_date = start_date
-    while current_date <= end_date:
-        all_flights_info = []
-        formatted_date = current_date.strftime('%Y-%m-%dT%H:%M')
-        for airport in airports:
-            print(f'Retrieving data for {airport} on {formatted_date}')
-            data = fetch_flight_data(airport, formatted_date)
-            print(data)
-            if data:
-                flights_info = transform_data(data)
-                all_flights_info.extend(flights_info)
-    
-        process_data(all_flights_info)
-        current_date += interval
+    access_token = get_access_token(URL_TOKEN, HEARDERS_TOKEN, DATA_TOKEN)
+    if access_token != None:
+        while current_date <= end_date:
+            all_flights_info = []
+            formatted_date = current_date.strftime('%Y-%m-%dT%H:%M')
+            for airport in airports:
+                print(f'Retrieving data for {airport} on {formatted_date}')
+                data = fetch_flight_data(access_token,airport, formatted_date)
+                print(data)
+                if data:
+                    flights_info = transform_data(data)
+                    all_flights_info.extend(flights_info)
+        
+            process_data(all_flights_info)
+            current_date += interval
     
     
     
