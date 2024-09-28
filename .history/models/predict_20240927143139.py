@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from pymongo import MongoClient
-from pathlib import Path
-
 
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
@@ -68,10 +66,9 @@ def preprocess_new_data(new_data, encoder, scaler):
 
     return processed_data
 
-def main(new_data):
+def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    pathfile = Path(__file__).resolve().parent
-    run_id = pathfile/"2"
+    run_id = "2"
     
     # Chargement du modèle
     model = load_model(run_id)
@@ -90,6 +87,33 @@ def main(new_data):
     # Récupérer le premier document de la collection
     first_document = collection.find_one()
     
+    # Exemple de nouvelles données
+    new_data = pd.DataFrame({
+        'FlightNumber': ['012'],
+        'DepartureAirport': ['JFK'],
+        'ArrivalAirport': ['IST'],
+        'DepartureCondition': ['Clear'],
+        'ArrivalCondition': ['Sunny'],
+        'DepartureTempC': [21.6],
+        'DepartureHumidity': [54],
+        'DeparturePrecipMM': [0.0],
+        'DepartureWindKPH': [15.5],
+        'DepartureVisKM': [10.0],
+        'DepartureGustKPH': [21.8],
+        'ArrivalTempC': [28.3],
+        'ArrivalHumidity': [59],
+        'ArrivalPrecipMM': [0.0],
+        'ArrivalWindKPH': [25.2],
+        'ArrivalVisKM': [10.0],
+        'ArrivalGustKPH': [33.3],
+        'DepartureHour': [0],
+        'ArrivalHour': [17],
+        'DepartureDayOfWeek': [5],  
+        'ArrivalDayOfWeek': [5],    
+        'DepartureMonth': [8],      
+        'ArrivalMonth': [8],
+         'De': [8]         
+    })
 
     # Prétraitement des nouvelles données
     preprocessed_data = preprocess_new_data(new_data, encoder, scaler)
@@ -99,7 +123,7 @@ def main(new_data):
     predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives
     
     # Affichage des prédictions
-    return {"Prédiction du retard d'arrivée (en minutes)": predictions}
+    print(f"Prédiction du retard d'arrivée (en minutes): {predictions}")
 
 if __name__ == "__main__":
     main()

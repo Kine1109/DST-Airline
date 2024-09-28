@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from pymongo import MongoClient
-from pathlib import Path
-
 
 
 def connect_to_mongodb(mongo_uri, db_name, collection_name):
@@ -68,10 +66,9 @@ def preprocess_new_data(new_data, encoder, scaler):
 
     return processed_data
 
-def main(new_data):
+def main():
     # Spécifiez le run_id du modèle et des préprocesseurs
-    pathfile = Path(__file__).resolve().parent
-    run_id = pathfile/"2"
+    run_id = "2"
     
     # Chargement du modèle
     model = load_model(run_id)
@@ -89,6 +86,8 @@ def main(new_data):
     collection = connect_to_mongodb(MONGO_URI, db_name, collection_name)
     # Récupérer le premier document de la collection
     first_document = collection.find_one()
+    
+    # Exemple de nouvelles données
     
 
     # Prétraitement des nouvelles données
