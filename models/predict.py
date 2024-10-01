@@ -47,7 +47,7 @@ def preprocess_new_data(new_data, encoder, scaler):
     Prétraitement des nouvelles données en utilisant les préprocesseurs chargés.
     """
 
-    categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
+    categorical_features = ['DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
     continuous_features = ['DepartureTempC', 'DepartureHumidity', 'DeparturePrecipMM', 
                            'DepartureWindKPH', 'DepartureVisKM', 'DepartureGustKPH',
                            'ArrivalTempC', 'ArrivalHumidity', 'ArrivalPrecipMM', 
@@ -96,10 +96,11 @@ def main(new_data):
     
     # Prédiction avec le modèle
     predictions = model.predict(preprocessed_data)
-    predictions = np.maximum(predictions, 0)  # Ne permet pas de prédictions négatives
+    predictions = float(np.maximum(predictions, 0)) # Ne permet pas de prédictions négatives puis conversion en minutes
     
+ 
     # Affichage des prédictions
-    return {"Prédiction du retard d'arrivée (en minutes)": predictions}
+    return predictions
 
 if __name__ == "__main__":
     main()

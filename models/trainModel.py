@@ -40,7 +40,6 @@ def extract_flight_data(collection):
     data = []
     for flight in flights:
         flight_data = {
-            'FlightNumber': flight.get('FlightNumber'),
             'DepartureAirport': flight.get('DepartureAirport'),
             'ArrivalAirport': flight.get('ArrivalAirport'),
             'DepartureTimeLocal': flight.get('DepartureTimeLocal'),
@@ -90,7 +89,7 @@ def prepare_data(flights_df):
     flights_df = flights_df.drop(columns=['DepartureTimeLocal', 'ArrivalTimeLocal'])
 
     # Encodage des variables catégorielles
-    categorical_features = ['FlightNumber', 'DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
+    categorical_features = ['DepartureAirport', 'ArrivalAirport', 'DepartureCondition', 'ArrivalCondition']
     encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     encoded_categorical = encoder.fit_transform(flights_df[categorical_features])
 
