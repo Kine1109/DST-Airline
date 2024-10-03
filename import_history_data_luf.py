@@ -3,9 +3,12 @@ import pandas as pd
 from pymongo import MongoClient
 from dateutil import parser
 import logging
-import json
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
+# Charger les variables d'environnement à partir du fichier .env
+load_dotenv()
 
 
 
@@ -17,9 +20,9 @@ logging.basicConfig(
 )
 
 # Variables de configuration
-API_KEY = '4f2f845653e64a21b22163313242808'
+API_KEY = os.getenv('API_KEY')
 BASE_URL = 'https://api.lufthansa.com/v1'
-MONGO_URI = 'mongodb+srv://dst-airline-MRFF:gVlxqqz76838njKp@cluster0.vauxcgo.mongodb.net/test?retryWrites=true&w=majority' 
+MONGO_URI = os.getenv('MONGO_URI')
 DB_NAME = 'flight_data'
 COLLECTION_NAME = 'flights_with_weather'
 
@@ -27,8 +30,8 @@ CLIENT_MONGO = MongoClient(MONGO_URI)
 DB = CLIENT_MONGO[DB_NAME]
 COLLECTION = DB[COLLECTION_NAME]
 
-CLIENT_ID = 'e8hcgs9ady5xbaxd2b73n4zmq'
-CLIENT_SECRET = 'kqUNaMx7yA'
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
 
 URL_TOKEN = "https://api.lufthansa.com/v1/oauth/token"
@@ -277,8 +280,8 @@ def process_data(data):
         print("Données sauvegardées dans MongoDB.")
 
 if __name__ == '__main__':
-    start_date_str = '2024-09-24T00:00'
-    end_date_str = '2024-09-26T00:00'
+    start_date_str = '2024-09-27T00:00'
+    end_date_str = '2024-10-02T00:00'
 
     start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')

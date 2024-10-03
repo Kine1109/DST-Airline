@@ -10,3 +10,4 @@ uvicorn
 requests
 fastapi
 plotly
+python-dotenv
