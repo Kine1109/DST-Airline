@@ -222,6 +222,7 @@ def get_weather_data(api_key, iata_code, date):
     
     location = data.get('location', {})
     forecast_hours = data.get('forecast', {}).get('forecastday', [])[0].get('hour', [])
+    print(forecast_hours)
     forecast_df = pd.DataFrame(forecast_hours)
     
     forecast_df['condition_text'] = [hour.get('condition', {}).get('text', 'N/A') for hour in forecast_hours]
@@ -280,8 +281,8 @@ def process_data(data):
         print("Données sauvegardées dans MongoDB.")
 
 if __name__ == '__main__':
-    start_date_str = '2024-09-27T00:00'
-    end_date_str = '2024-10-02T00:00'
+    start_date_str = '2024-10-03T00:00'
+    end_date_str = '2024-10-06T00:00'
 
     start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
     end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')

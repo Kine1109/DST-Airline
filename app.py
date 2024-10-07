@@ -22,29 +22,69 @@ API_KEY = os.getenv('API_KEY')
 
 # Fonction pour récupérer les données depuis MongoDB
 def load_data():
-    data = COLLECTION.find({})
+    # Définir la date limite (27 septembre 2024 à 00:00 UTC)
+    cutoff_date = "2024-09-27T00:00:00"
+    
+    # Requête MongoDB pour récupérer les vols avec une date de départ inférieure à la date limite
+    data = COLLECTION.find({
+        'DepartureTimeLocal': {'$lt': cutoff_date}
+    })
     flights = []
     for flight in data:
         flight_data = {
             'FlightNumber': flight.get('FlightNumber'),
             'DepartureAirport': flight.get('DepartureAirport'),  # Code IATA
             'ArrivalAirport': flight.get('ArrivalAirport'),      # Code IATA
-            'DepartureTimeLocal': flight.get('DepartureTimeLocal'),
-            'ArrivalTimeLocal': flight.get('ArrivalTimeLocal'),
+            'DepartureTimeLocal': pd.to_datetime(flight.get('DepartureTimeLocal')),
+            'ArrivalTimeLocal': pd.to_datetime(flight.get('ArrivalTimeLocal')),
             'ArrivalDelayDuration': flight.get('ArrivalDelayDuration'),
             'DepartureTempC': flight.get('DepartureWeather', {}).get('temp_c', None),
             'DepartureHumidity': flight.get('DepartureWeather', {}).get('humidity', None),
             'DeparturePrecipMM': flight.get('DepartureWeather', {}).get('precip_mm', None),
             'DepartureWindKPH': flight.get('DepartureWeather', {}).get('wind_kph', None),
+            'DepartureVisKM': flight.get('DepartureWeather', {}).get('vis_km', None),
+            'DepartureGustKPH': flight.get('DepartureWeather', {}).get('gust_kph', None),
             'DepartureCondition': flight.get('DepartureWeather', {}).get('condition_text', None),
             'ArrivalTempC':flight.get('ArrivalWeather', {}).get('temp_c', None),
             'ArrivalHumidity': flight.get('ArrivalWeather', {}).get('humidity', None),
             'ArrivalPrecipMM':flight.get('ArrivalWeather', {}).get('precip_mm', None),
             'ArrivalWindKPH': flight.get('ArrivalWeather', {}).get('wind_kph', None),
+            'ArrivalVisKM': flight.get('ArrivalWeather', {}).get('vis_km', None),
+            'ArrivalGustKPH': flight.get('ArrivalWeather', {}).get('gust_kph', None),
             'ArrivalCondition': flight.get('ArrivalWeather', {}).get('condition_text', None)
         }
         flights.append(flight_data)
-    return pd.DataFrame(flights)
+
+    data2 = COLLECTION.find({
+        'DepartureTimeLocal': {'$gte': cutoff_date}
+    })
+    new_flights = []
+    for flight in data2:
+        flight_data = {
+            'FlightNumber': flight.get('FlightNumber'),
+            'DepartureAirport': flight.get('DepartureAirport'),  # Code IATA
+            'ArrivalAirport': flight.get('ArrivalAirport'),      # Code IATA
+            'DepartureTimeLocal': pd.to_datetime(flight.get('DepartureTimeLocal')),
+            'ArrivalTimeLocal': pd.to_datetime(flight.get('ArrivalTimeLocal')),
+            'ArrivalDelayDuration': flight.get('ArrivalDelayDuration'),
+            'DepartureTempC': flight.get('DepartureWeather', {}).get('temp_c', None),
+            'DepartureHumidity': flight.get('DepartureWeather', {}).get('humidity', None),
+            'DeparturePrecipMM': flight.get('DepartureWeather', {}).get('precip_mm', None),
+            'DepartureWindKPH': flight.get('DepartureWeather', {}).get('wind_kph', None),
+            'DepartureVisKM': flight.get('DepartureWeather', {}).get('vis_km', None),
+            'DepartureGustKPH': flight.get('DepartureWeather', {}).get('gust_kph', None),
+            'DepartureCondition': flight.get('DepartureWeather', {}).get('condition_text', None),
+            'ArrivalTempC':flight.get('ArrivalWeather', {}).get('temp_c', None),
+            'ArrivalHumidity': flight.get('ArrivalWeather', {}).get('humidity', None),
+            'ArrivalPrecipMM':flight.get('ArrivalWeather', {}).get('precip_mm', None),
+            'ArrivalWindKPH': flight.get('ArrivalWeather', {}).get('wind_kph', None),
+            'ArrivalVisKM': flight.get('ArrivalWeather', {}).get('vis_km', None),
+            'ArrivalGustKPH': flight.get('ArrivalWeather', {}).get('gust_kph', None),
+            'ArrivalCondition': flight.get('ArrivalWeather', {}).get('condition_text', None)
+        }
+        new_flights.append(flight_data)
+
+    return pd.DataFrame(flights),pd.DataFrame(new_flights)
 
 def get_weather_data(api_key, iata_code, date, target_time):
     """
@@ -94,7 +134,7 @@ def load_airport_data():
     return pd.read_csv('airports_cleaned.csv')
 
 # Charger les données des vols et des aéroports
-flights_df = load_data()
+flights_df,new_flights_df = load_data()
 airports_df = load_airport_data()
 
 # Convertir les secondes en minutes
@@ -202,12 +242,16 @@ elif menu == "Conditions Météorologiques":
         precip_col = 'DeparturePrecipMM'
         wind_col = 'DepartureWindKPH'
         condition_col = 'DepartureCondition'
+        vis_col = 'DepartureVisKM'
+        gust_col ='DepartureGustKPH'
     else:
         temp_col = 'ArrivalTempC'
         humidity_col = 'ArrivalHumidity'
         precip_col = 'ArrivalPrecipMM'
         wind_col = 'ArrivalWindKPH'
         condition_col = 'ArrivalCondition'
+        vis_col = 'ArrivalVisKM'
+        gust_col ='ArrivalGustKPH'
 
     # Retard par Température
     st.header(f"Retard par Température ({condition_choice}) 🌡️")
@@ -273,6 +317,39 @@ elif menu == "Conditions Météorologiques":
     )
     st.plotly_chart(fig_wind, use_container_width=True)
 
+    # Retard par visibilité du Vent
+    st.header(f"Retard par Visibilité ({condition_choice}) 👁️")
+    fig_vis = px.scatter(
+        flights_df, x=vis_col, y='ArrivalDelayDuration',
+        title=f"Retard par Visibilité ({condition_choice})",
+        labels={vis_col: "Visibilité (KM)", "ArrivalDelayDuration": "Retard d'Arrivée (minutes)"},
+        color_discrete_sequence=["#FF6F61"]
+    )
+    fig_vis.update_layout(
+        xaxis_title_font=dict(size=18, color='black'),
+        yaxis_title_font=dict(size=18, color='black'),
+        xaxis_tickfont=dict(size=12, color='black'),
+        yaxis_tickfont=dict(size=12, color='black')
+    )
+    st.plotly_chart(fig_vis, use_container_width=True)
+
+    # Retard par Rafale du Vent
+    st.header(f"Retard par Rafale du Vent ({condition_choice}) 💨")
+    fig_gust = px.scatter(
+        flights_df, x=gust_col, y='ArrivalDelayDuration',
+        title=f"Retard par Rafale du Vent ({condition_choice})",
+        labels={gust_col: "Rafale du Vent (KPH)", "ArrivalDelayDuration": "Retard d'Arrivée (minutes)"},
+        color_discrete_sequence=["#FF6F61"]
+    )
+    fig_gust.update_layout(
+        xaxis_title_font=dict(size=18, color='black'),
+        yaxis_title_font=dict(size=18, color='black'),
+        xaxis_tickfont=dict(size=12, color='black'),
+        yaxis_tickfont=dict(size=12, color='black')
+    )
+    st.plotly_chart(fig_gust, use_container_width=True)
+
+
     # Retard par Conditions Météorologiques
     st.header(f"Retard par Conditions Météorologiques ({condition_choice})")
     weather_delay = flights_df.groupby(condition_col)['ArrivalDelayDuration'].mean().reset_index()
@@ -313,8 +390,6 @@ elif menu == "Données Filtrées":
 
 # Page Faire une Prédiction
 elif menu == "Faire une Prédiction":
-    st.title("Prédiction de Retard de Vol ✈️")
-
     st.markdown("""
     <style>
         .stButton button {
@@ -333,93 +408,143 @@ elif menu == "Faire une Prédiction":
 
     st.header("Sélection des Informations de Vol 🛫")
 
-    # Créer un ensemble de tous les codes IATA présents dans flights_df
-    departure_airports = flights_df['DepartureAirport'].unique()
-    arrival_airports = flights_df['ArrivalAirport'].unique()
-
-    # Filtrer airports_df_cleaned pour ne garder que les aéroports qui sont dans flights_df
-    departure_airports_df_cleaned = airports_df_cleaned[airports_df_cleaned['IATA'].isin(departure_airports)]
-    arrival_airports_df_cleaned = airports_df_cleaned[airports_df_cleaned['IATA'].isin(arrival_airports)]
+    # 1. Sélectionner l'aéroport de départ
+    departure_airports_iata = new_flights_df['DepartureAirport'].unique()
+    departure_airports_df = airports_df_cleaned[airports_df_cleaned['IATA'].isin(departure_airports_iata)]
 
     col1, col2 = st.columns(2)
-
     with col1:
-        departure_airport_name = st.selectbox("🛫 Aéroport de départ", departure_airports_df_cleaned['Name'])
+        departure_airport_name = st.selectbox("🛫 Aéroport de départ", departure_airports_df['Name'])
+
+    # Récupérer le code IATA correspondant au nom complet sélectionné
+    departure_airport_code = departure_airports_df[departure_airports_df['Name'] == departure_airport_name]['IATA'].values[0]
+
+    # 2. Filtrer les vols disponibles pour l'aéroport de départ sélectionné
+    available_flights_departure = new_flights_df[new_flights_df['DepartureAirport'] == departure_airport_code]
+
+    # 3. Sélectionner l'aéroport d'arrivée parmi ceux disponibles pour ce départ
+    arrival_airports_iata = available_flights_departure['ArrivalAirport'].unique()
+    arrival_airports_df = airports_df_cleaned[airports_df_cleaned['IATA'].isin(arrival_airports_iata)]
     with col2:
-        arrival_airport_name = st.selectbox("🛬 Aéroport d'arrivée", arrival_airports_df_cleaned['Name'])
+        arrival_airport_name = st.selectbox("🛬 Aéroport d'arrivée", arrival_airports_df['Name'])
 
-    # Récupérer les codes IATA correspondants
-    departure_airport_code = departure_airports_df_cleaned[departure_airports_df_cleaned['Name'] == departure_airport_name]['IATA'].values[0]
-    arrival_airport_code = arrival_airports_df_cleaned[arrival_airports_df_cleaned['Name'] == arrival_airport_name]['IATA'].values[0]
-    
-    # Sélection de la date et heure de départ et d'arrivée
-    st.header("Planification du Vol 🕒")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        departure_datetime = st.date_input("📅 Date de départ", datetime.now())
-        departure_time = st.time_input("🕐 Heure de départ", key='departure_time')
-    with col2:
-        arrival_datetime = st.date_input("📅 Date d'arrivée", datetime.now())
-        arrival_time = st.time_input("🕒 Heure d'arrivée", key='arrival_time')
+    # Récupérer le code IATA correspondant
+    arrival_airport_code = arrival_airports_df[arrival_airports_df['Name'] == arrival_airport_name]['IATA'].values[0]
 
-    # Prendre la date et l'heure de départ et d'arrivée
-    departure_full_datetime = datetime.combine(departure_datetime, departure_time)
-    arrival_full_datetime = datetime.combine(arrival_datetime, arrival_time)
-    
-    # Récupérer les données météo pour le départ et l'arrivée
-    departure_date_str = departure_datetime.strftime('%Y-%m-%d')
-    arrival_date_str = arrival_datetime.strftime('%Y-%m-%d')
-    departure_weather_closest = get_weather_data(API_KEY, departure_airport_code, departure_date_str, departure_full_datetime)
-    arrival_weather_closest = get_weather_data(API_KEY, arrival_airport_code, arrival_date_str, arrival_full_datetime)
+    # 4. Filtrer les vols disponibles pour le départ et l'arrivée sélectionnés
+    available_flights = available_flights_departure[available_flights_departure['ArrivalAirport'] == arrival_airport_code]
 
-    st.header("Conditions Météo 🌤")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Départ 🛫")
-        st.write(departure_weather_closest)
-    with col2:
-        st.subheader("Arrivée 🛬")
-        st.write(arrival_weather_closest)
+    # 5. Sélectionner la date de départ disponible (par défaut à aujourd'hui)
+    available_dates = available_flights['DepartureTimeLocal'].dt.date.unique()
+    departure_date = st.selectbox("📅 Date de départ", available_dates)
 
-    # Bouton pour lancer la prédiction
-    if st.button("🔮 Prédire le Retard"):
-        # Construction des données pour l'API de prédiction
-        prediction_data = {
-            'DepartureAirport': departure_airport_code,
-            'ArrivalAirport': arrival_airport_code,
-            'DepartureCondition': departure_weather_closest['condition_text'],
-            'ArrivalCondition': arrival_weather_closest['condition_text'],
-            'DepartureTempC': float(departure_weather_closest['temp_c']),
-            'DepartureHumidity': int(departure_weather_closest['humidity']),
-            'DeparturePrecipMM': float(departure_weather_closest['precip_mm']),
-            'DepartureWindKPH': float(departure_weather_closest['wind_kph']),
-            'DepartureVisKM': float(departure_weather_closest['vis_km']),
-            'DepartureGustKPH': float(departure_weather_closest['gust_kph']),
-            'ArrivalTempC': float(arrival_weather_closest['temp_c']),
-            'ArrivalHumidity': int(arrival_weather_closest['humidity']),
-            'ArrivalPrecipMM': float(arrival_weather_closest['precip_mm']),
-            'ArrivalWindKPH': float(arrival_weather_closest['wind_kph']),
-            'ArrivalVisKM': float(arrival_weather_closest['vis_km']),
-            'ArrivalGustKPH': float(arrival_weather_closest['gust_kph']),
-            'DepartureHour': departure_full_datetime.hour,
-            'ArrivalHour': arrival_full_datetime.hour,
-            'DepartureDayOfWeek': departure_full_datetime.weekday() + 1,
-            'ArrivalDayOfWeek': arrival_full_datetime.weekday() + 1,
-            'DepartureMonth': departure_full_datetime.month,
-            'ArrivalMonth': arrival_full_datetime.month
+    # Filtrer les heures de départ disponibles pour cette date
+    available_hours = available_flights[available_flights['DepartureTimeLocal'].dt.date == departure_date]['DepartureTimeLocal'].dt.time.unique()
+    departure_time = st.selectbox("🕐 Heure de départ", available_hours)
+
+    # Sélectionner le vol correspondant à la date et l'heure sélectionnées
+    selected_flight = available_flights[
+        (available_flights['DepartureTimeLocal'].dt.date == departure_date) &
+        (available_flights['DepartureTimeLocal'].dt.time == departure_time)
+    ]
+
+    # 6. Extraire les informations sur le vol sélectionné
+    if not selected_flight.empty:
+        selected_flight_info = selected_flight.iloc[0]
+        # Extraire les heures et les dates
+        departure_full_datetime = selected_flight_info['DepartureTimeLocal']
+        arrival_full_datetime = selected_flight_info['ArrivalTimeLocal']
+        arrival_date = arrival_full_datetime.date()
+
+        # Afficher l'heure et la date d'arrivée
+        st.write(f"🛬 Heure d'arrivée : {arrival_full_datetime.time()}")
+        st.write(f"📅 Date d'arrivée : {arrival_date}")
+
+        # 7. Afficher les informations météo sous forme de tableau
+        st.header("Conditions Météo 🌤")
+
+        # Créer un DataFrame pour les données météo
+        weather_data = {
+            'Météo': ['Température (°C)', 'Humidité (%)', 'Précipitations (mm)', 'Vent (kph)', 'Conditions','Visibilité (km)','Rafales de Vent (kph)'],
+            'Départ 🛫': [
+                selected_flight_info['DepartureTempC'],
+                selected_flight_info['DepartureHumidity'],
+                selected_flight_info['DeparturePrecipMM'],
+                selected_flight_info['DepartureWindKPH'],
+                selected_flight_info['DepartureVisKM'],
+                selected_flight_info['DepartureGustKPH'],
+                selected_flight_info['DepartureCondition']
+            ],
+            'Arrivée 🛬': [
+                selected_flight_info['ArrivalTempC'],
+                selected_flight_info['ArrivalHumidity'],
+                selected_flight_info['ArrivalPrecipMM'],
+                selected_flight_info['ArrivalWindKPH'],
+                selected_flight_info['ArrivalVisKM'],
+                selected_flight_info['ArrivalGustKPH'],
+                selected_flight_info['ArrivalCondition']
+
+            ]
         }
+        
+        # Créer un DataFrame pour afficher les données en tableau
+        weather_df = pd.DataFrame(weather_data)
+        st.table(weather_df)
+        # 8. Préparer les données pour la prédiction et exécuter l'algorithme de prédiction
+        if st.button("🔮 Prédire le Retard"):
+            prediction_data = {
+                'DepartureAirport': selected_flight_info['DepartureAirport'],
+                'ArrivalAirport': selected_flight_info['ArrivalAirport'],
+                'DepartureCondition': selected_flight_info['DepartureCondition'],
+                'ArrivalCondition': selected_flight_info['ArrivalCondition'],
+                'DepartureTempC': float(selected_flight_info['DepartureTempC']),
+                'DepartureHumidity': int(selected_flight_info['DepartureHumidity']),
+                'DeparturePrecipMM': float(selected_flight_info['DeparturePrecipMM']),
+                'DepartureWindKPH': float(selected_flight_info['DepartureWindKPH']),
+                'DepartureVisKM': float(selected_flight_info['DepartureVisKM']),
+                'DepartureGustKPH': float(selected_flight_info['DepartureGustKPH']),
+                'ArrivalTempC': float(selected_flight_info['ArrivalTempC']),
+                'ArrivalHumidity': int(selected_flight_info['ArrivalHumidity']),
+                'ArrivalPrecipMM': float(selected_flight_info['ArrivalPrecipMM']),
+                'ArrivalWindKPH': float(selected_flight_info['ArrivalWindKPH']),
+                'ArrivalVisKM': float(selected_flight_info['ArrivalVisKM']),
+                'ArrivalGustKPH': float(selected_flight_info['ArrivalGustKPH']),
+                'DepartureHour': int(departure_full_datetime.hour),
+                'ArrivalHour': int(arrival_full_datetime.hour),
+                'DepartureDayOfWeek': int(departure_full_datetime.weekday() + 1),  # +1 pour faire commencer à 1
+                'ArrivalDayOfWeek': int(arrival_full_datetime.weekday() + 1),        # +1 pour faire commencer à 1
+                'DepartureMonth': int(departure_full_datetime.month),
+                'ArrivalMonth': int(arrival_full_datetime.month)
+            }
 
-        # Appel à l'API de prédiction
-        url = "http://fastapi:8000/predict"  # Remplacer par l'URL de votre API
-        response = requests.post(url, json=prediction_data)
+            # Appel à l'API de prédiction
+            url = "http://fastapi:8000/predict"  # Remplacer par l'URL de votre API
+            response = requests.post(url, json=prediction_data)
+            if response.status_code == 200:
+                prediction_result = response.json().get('prediction_delay')
+                # Calcul des heures et minutes
+                hours = int(prediction_result // 3600)
+                minutes = int((prediction_result % 3600) // 60)
+                st.success(f"Prédiction du retard : **{round(prediction_result / 60, 2)} minutes soit {hours:02}:{minutes:02}**")
 
-        if response.status_code == 200:
-            prediction_result = response.json().get('prediction_delay')
-            # Calcul des heures et minutes
-            hours = int(prediction_result // 3600)
-            minutes = int((prediction_result % 3600) // 60)
-            result = f"Prédiction du retard : {round(prediction_result / 60, 2)} minutes soit {hours} heures {minutes:02} minutes"
-            st.success(result)
-        else:
-            st.error("Erreur lors de la prédiction. Veuillez réessayer.")
+                # Afficher le retard réel du vol
+                actual_delay = selected_flight_info['ArrivalDelayDuration']
+                actual_hours = int(actual_delay // 3600)
+                actual_minutes = int((actual_delay % 3600) // 60)
+                st.write(f"📉 Retard réel : **{round(actual_delay / 60, 2)} minutes soit {actual_hours:02}:{actual_minutes:02}**")
+
+                # Comparer le retard prédit avec le retard réel
+                if prediction_result > actual_delay:
+                    st.warning("La prédiction indique un retard supérieur au retard réel.")
+                elif prediction_result < actual_delay:
+                    st.success("La prédiction indique un retard inférieur au retard réel.")
+                else:
+                    st.success("La prédiction est exactement égale au retard réel.")
+            else:
+                st.error("Erreur lors de la prédiction. Veuillez réessayer.")
+
+
+    else:
+        st.warning("Aucun vol disponible pour les critères sélectionnés.")
+
+    
