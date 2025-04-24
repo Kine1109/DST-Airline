@@ -79,8 +79,22 @@ cp .env.example .env
 ```
 
 ### 2. Run with Docker
+
+Before starting Docker, make sure to initialize your dataset and model locally:
+
 ```bash
-docker compose up --build
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python import_history_data_luf.py
+python trainModel.py
+uvicorn main:app --reload
+streamlit run app.py
+```
+
+Then build and run the containers:
+
+```bash
+docker-compose up --build
 ```
 - API docs (Swagger): http://localhost:8000/docs  
 - Dashboard: http://localhost:8501
