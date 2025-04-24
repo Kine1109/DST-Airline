@@ -131,16 +131,28 @@ curl -X POST http://localhost:8000/predict      -H "Content-Type: application/js
 ### Overview & statistics
 Descriptive analytics (flight delays, temperature, humidity, etc.)
 
-![Dashboard overview](screenshots/overview.png)
+![Dashboard overview](screenshots/Overview.png)
 
 ### Delay analysis
 Compare average delays by airport (departure vs arrival)
 
+![Delay analysis](screenshots/delay.png)
+
 ### Weather conditions
 Correlations between weather (precipitation, wind, visibility) and delay severity
 
+![Weather conditions 1](screenshots/Weather1.png)
+
+![Weather conditions 2](screenshots/Weather2.png)
+
+![Weather conditions 3](screenshots/Weather3.png)
+
 ### Live prediction
 Form to input flight info → API call → display estimated delay
+
+![Live prediction 1](screenshots/prediction1.png)
+
+![Live prediction 2](screenshots/prediction2.png)
 
 ## Future improvements
 - 🔄 Automate data ingestion + model retraining with Airflow
