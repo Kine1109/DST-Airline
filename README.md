@@ -131,6 +131,8 @@ curl -X POST http://localhost:8000/predict      -H "Content-Type: application/js
 ### Overview & statistics
 Descriptive analytics (flight delays, temperature, humidity, etc.)
 
+![Dashboard overview](screenshots/overview.png)
+
 ### Delay analysis
 Compare average delays by airport (departure vs arrival)
 
