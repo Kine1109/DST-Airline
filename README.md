@@ -87,8 +87,6 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python import_history_data_luf.py
 python trainModel.py
-uvicorn main:app --reload
-streamlit run app.py
 ```
 
 Then build and run the containers:
