@@ -73,7 +73,7 @@ Everything is accessible via a **REST API** and visualized through an interactiv
 
 ### 1. Clone the project
 ```bash
-git clone https://github.com/<your-org>/dst-airline.git
+git clone [https://github.com/<your-org>/dst-airline.git](https://github.com/Kine1109/DST-Airline.git)
 cd dst-airline
 cp .env.example .env
 ```
