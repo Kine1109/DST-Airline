@@ -36,7 +36,12 @@ def extract_flight_data(collection):
     Retourne :
         pd.DataFrame : Un DataFrame contenant les données de vol.
     """
-    flights = collection.find({})
+    cutoff_date = "2024-09-27T00:00:00"
+    
+    # Requête MongoDB pour récupérer les vols avec une date de départ inférieure à la date limite
+    flights = collection.find({
+        'DepartureTimeLocal': {'$lt': cutoff_date}
+    })
     data = []
     for flight in flights:
         flight_data = {
